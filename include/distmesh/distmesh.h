@@ -39,7 +39,7 @@ namespace distmesh {
         Functional const& distanceFunction, double const initialPointDistance,
         Functional const& elementSizeFunction=1.0,
         Eigen::Ref<Eigen::ArrayXXd const> const boundingBox=utils::boundingBox(2),
-        Eigen::Ref<Eigen::ArrayXXd const> const fixedPoints=Eigen::ArrayXXd());
+        Eigen::Ref<Eigen::ArrayXXd const> const fixedPoints=Eigen::ArrayXXd(0,2));
 }
 
 #endif

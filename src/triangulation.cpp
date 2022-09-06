@@ -20,58 +20,28 @@
 
 #include <stdio.h>
 
-// qhull library used to calculate delaunay triangulation
-extern "C" {
-    #define qh_QHimport
-    #include <qhull/qhull_a.h>
-}
+#include <delaunator.hpp>
 
 #include "distmesh/distmesh.h"
 #include "distmesh/triangulation.h"
 
 Eigen::ArrayXXi distmesh::triangulation::delaunay(
     Eigen::Ref<Eigen::ArrayXXd const> const points) {
-    // reset qhull
-    if (qh_qh) {
-        qh_save_qhull();
+
+    std::vector<double> coords;
+    for (int n = 0; n < points.rows(); ++n) {
+        coords.push_back(points(n, 0));
+        coords.push_back(points(n, 1));
     }
 
-    // convert points array to row major format
-    Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic,
-        Eigen::RowMajor> pointsRowMajor = points;
+    delaunator::Delaunator d(coords);
 
-    // calculate delaunay triangulation
-    std::string flags = "qhull d Qt Qbb Qc Qz";
-    qh_new_qhull(points.cols(), points.rows(), pointsRowMajor.data(), False,
-        (char*)flags.c_str(), nullptr, stderr);
-    qh_triangulate();
-
-    // count all upper delaunay facets
-    unsigned facetCount = 0;
-    facetT* facet;
-    FORALLfacets {
-        if (!facet->upperdelaunay) {
-            facetCount++;
-        }
+    int nMax = d.triangles.size()/3;
+    Eigen::ArrayXXi triangulation(nMax, 3);
+    for (int n = 0; n < nMax; ++n) {
+        triangulation(n, 0) = d.triangles[3*n];
+        triangulation(n, 1) = d.triangles[3*n + 1];
+        triangulation(n, 2) = d.triangles[3*n + 2];
     }
-
-    // extract point ids from delaunay triangulation
-    Eigen::ArrayXXi triangulation(facetCount, points.cols() + 1);
-    unsigned facetId = 0;
-    unsigned vertexId = 0;
-    vertexT* vertex, **vertexp;
-
-    FORALLfacets {
-        vertexId = 0;
-        if (!facet->upperdelaunay) {
-            qh_setsize(facet->vertices);
-            FOREACHvertex_(facet->vertices) {
-                triangulation(facetId, vertexId) = qh_pointid(vertex->point);
-                vertexId++;
-            }
-            facetId++;
-        }
-    }
-
     return triangulation;
 }

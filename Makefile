@@ -60,7 +60,7 @@ STATIC_NAME := $(BUILD_DIR)/lib/lib$(PROJECT)_static.a
 ##############################
 # Includes and libraries
 ##############################
-LIBRARIES := qhull
+LIBRARIES :=
 LIBRARY_DIRS +=
 INCLUDE_DIRS += ./include ./examples/include
 
@@ -68,10 +68,17 @@ INCLUDE_DIRS += ./include ./examples/include
 # Compiler Flags
 ##############################
 GIT_VERSION := $(shell git describe --tags --long)
-COMMON_FLAGS := $(addprefix -I, $(INCLUDE_DIRS)) -DGIT_VERSION=\"$(GIT_VERSION)\"
-CXXFLAGS := -std=c++11 -fPIC
-LINKFLAGS := -fPIC
-LDFLAGS := $(addprefix -l, $(LIBRARIES)) $(addprefix -L, $(LIBRARY_DIRS)) $(addprefix -Xlinker -rpath , $(LIBRARY_DIRS))
+COMMON_FLAGS := $(FLAGS) $(addprefix -I, $(INCLUDE_DIRS)) -DGIT_VERSION=\"$(GIT_VERSION)\"
+CXXFLAGS += -std=c++11 -fPIC
+LINKFLAGS += -fPIC
+LDFLAGS += $(addprefix -l, $(LIBRARIES)) $(addprefix -L, $(LIBRARY_DIRS))
+
+OS := $(shell uname)
+ifeq ($(OS),Darwin)
+	SHAREDFLAGS := -install_name 'lib$(PROJECT).so'
+else
+	SHAREDFLAGS :=
+endif
 
 # Set compiler flags for debug configuration
 ifeq ($(DEBUG), 1)
@@ -100,17 +107,17 @@ EXAMPLES_SCRIPTS := $(BUILD_DIR)/examples/plot_mesh.py
 
 all: $(NAME) $(STATIC_NAME)
 
-examples: $(EXAMPLES_BINS) $(EXAMPLES_SCRIPTS)
-
-$(EXAMPLES_BINS): $(BUILD_DIR)/examples/% : $(BUILD_DIR)/objs/examples/src/%.o $(STATIC_NAME)
-	@echo [ Linking ] $@
-	@mkdir -p $(BUILD_DIR)/examples
-	@$(CXX) -o $@ $< $(UTILS_OBJS) $(STATIC_NAME) $(COMMON_FLAGS) $(LDFLAGS) $(LINKFLAGS)
+# examples: $(EXAMPLES_BINS) $(EXAMPLES_SCRIPTS)
+#
+# $(EXAMPLES_BINS): $(BUILD_DIR)/examples/% : $(BUILD_DIR)/objs/examples/src/%.o $(STATIC_NAME)
+# 	@echo [ Linking ] $@
+# 	@mkdir -p $(BUILD_DIR)/examples
+# 	@$(CXX) -o $@ $< $(UTILS_OBJS) $(STATIC_NAME) $(COMMON_FLAGS) $(LDFLAGS) $(LINKFLAGS)
 
 $(NAME): $(CXX_OBJS)
 	@echo [ Linking ] $@
 	@mkdir -p $(BUILD_DIR)/lib
-	@$(CXX) -shared -o $@ $(CXX_OBJS) $(COMMON_FLAGS) $(LDFLAGS) $(LINKFLAGS)
+	@$(CXX) -shared -o $@ $(CXX_OBJS) $(COMMON_FLAGS) $(LDFLAGS) $(LINKFLAGS) $(SHAREDFLAGS)
 
 $(STATIC_NAME): $(CXX_OBJS)
 	@echo [ Linking ] $@

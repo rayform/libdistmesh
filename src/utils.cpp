@@ -280,7 +280,7 @@ void distmesh::utils::projectPointsToBoundary(
 
         // project points back to boundary
         points -= outside.replicate(1, points.cols()).select(
-            gradient.colwise() * distance / gradient.square().rowwise().sum(), 0.0);
+            gradient.colwise() * (distance / gradient.square().rowwise().sum()), 0.0);
     }
 }
 
